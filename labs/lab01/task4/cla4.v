@@ -32,48 +32,54 @@ module cla4(
   wire p0, p1, p2, p3;
   wire g0, g1, g2, g3;
   wire c1, c2, c3;
-  wire a1,a2,a3,a4,a5,a6,a7,a8,a9,a10;
 
-  // Generate / Propagate
-  xor #(2) (p0,a[0],b[0]);
-  xor #(2) (p1,a[1],b[1]);
-  xor #(2) (p2,a[2],b[2]);
-  xor #(2) (p3,a[3],b[3]);
+  // TODO: your gate-level P/G, carry, and sum logic goes here.
+  // (cout should be connected to c4.) Remember the delay on every gate.
 
-  and #(2) (g0,a[0],b[0]);
-  and #(2) (g1,a[1],b[1]);
-  and #(2) (g2,a[2],b[2]);
-  and #(2) (g3,a[3],b[3]);
+// Step 1: Generate (g) and Propagate (p) signals per bit
+  xor #(2) (p0, a[0], b[0]);
+  and #(2) (g0, a[0], b[0]);
 
+  xor #(2) (p1, a[1], b[1]);
+  and #(2) (g1, a[1], b[1]);
+
+  xor #(2) (p2, a[2], b[2]);
+  and #(2) (g2, a[2], b[2]);
+
+  xor #(2) (p3, a[3], b[3]);
+  and #(2) (g3, a[3], b[3]);
+
+  // Step 2: Direct carry equations using multi-input AND/OR primitives
   // c1 = g0 + p0.cin
-  and #(2) (a1,p0,cin);
-  or  #(2) (c1,g0,a1);
+  wire c1_term0;
+  and #(2) (c1_term0, p0, cin);
+  or  #(2) (c1, g0, c1_term0);
 
   // c2 = g1 + p1.g0 + p1.p0.cin
-  and #(2) (a2,p1,g0);
-  and #(2) (a3,p1,p0,cin);
-  or  #(2) (c2,g1,a2,a3);
+  wire c2_term0, c2_term1;
+  and #(2) (c2_term0, p1, g0);
+  and #(2) (c2_term1, p1, p0, cin);
+  or  #(2) (c2, g1, c2_term0, c2_term1);
 
   // c3 = g2 + p2.g1 + p2.p1.g0 + p2.p1.p0.cin
-  and #(2) (a4,p2,g1);
-  and #(2) (a5,p2,p1,g0);
-  and #(2) (a6,p2,p1,p0,cin);
-  or  #(2) (c3,g2,a4,a5,a6);
+  wire c3_term0, c3_term1, c3_term2;
+  and #(2) (c3_term0, p2, g1);
+  and #(2) (c3_term1, p2, p1, g0);
+  and #(2) (c3_term2, p2, p1, p0, cin);
+  or  #(2) (c3, g2, c3_term0, c3_term1, c3_term2);
 
-  // cout = g3 + p3.g2 + p3.p2.g1 + p3.p2.p1.g0
-  //        + p3.p2.p1.p0.cin
-  and #(2) (a7,p3,g2);
-  and #(2) (a8,p3,p2,g1);
-  and #(2) (a9,p3,p2,p1,g0);
-  and #(2) (a10,p3,p2,p1,p0,cin);
-  or  #(2) (cout,g3,a7,a8,a9,a10);
+  // c4 (cout) = g3 + p3.g2 + p3.p2.g1 + p3.p2.p1.g0 + p3.p2.p1.p0.cin
+  wire c4_term0, c4_term1, c4_term2, c4_term3;
+  and #(2) (c4_term0, p3, g2);
+  and #(2) (c4_term1, p3, p2, g1);
+  and #(2) (c4_term2, p3, p2, p1, g0);
+  and #(2) (c4_term3, p3, p2, p1, p0, cin);
+  or  #(2) (cout, g3, c4_term0, c4_term1, c4_term2, c4_term3);
 
-  // Sum
-  xor #(2) (sum[0],p0,cin);
-  xor #(2) (sum[1],p1,c1);
-  xor #(2) (sum[2],p2,c2);
-  xor #(2) (sum[3],p3,c3);
-
-
-
+  // Step 3: Compute sum bits (sum[i] = p[i] ^ c[i], where c0 = cin)
+  xor #(2) (sum[0], p0, cin);
+  xor #(2) (sum[1], p1, c1);
+  xor #(2) (sum[2], p2, c2);
+  xor #(2) (sum[3], p3, c3);
+  
 endmodule
